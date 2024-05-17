@@ -22,6 +22,7 @@ add_logos()
 st.text("")
 main_ui()
 
+
 # Initialize the default model loaded flag
 default_model_loaded = False
 
@@ -64,6 +65,10 @@ img_size = st.number_input("Image Size", value=config["image_size"], step=32, mi
 # Set the initial IoU threshold to 0.5 for the first run
 initial_iou_threshold = config["initial_iou_threshold"]
 
+# Determine device
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+st.write(f"Using device: {device}")
+
 # Add a button to start processing images
 if st.button("Process Images"):
     if model_paths and dataset_dir:
@@ -78,7 +83,7 @@ if st.button("Process Images"):
 
         progress_bar = st.progress(0)
 
-        models = [YOLO(model_path).to('cuda') for model_path in model_paths]
+        models = [YOLO(model_path).to(device) for model_path in model_paths]
 
         all_images = []
         for split in dataset_splits:
