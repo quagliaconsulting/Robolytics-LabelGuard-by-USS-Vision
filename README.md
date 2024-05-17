@@ -32,7 +32,7 @@ https://www.ussvision.com/
 1. Clone the repository:
     ```sh
     gh repo clone quagliaconsulting/Robolytics-LabelGuard-by-USS-Vision
-    cd robolytics-labelguard
+    cd Robolytics-LabelGuard-by-USS-Vision
     ```
 
 2. Create a virtual environment and activate it:
