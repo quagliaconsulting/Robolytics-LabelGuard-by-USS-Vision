@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 37
+names: ['apple', 'backpack', 'bench', 'bicycle', 'book', 'bottle', 'bowl', 'cake', 'cat', 'chair', 'clock', 'cow', 'cup', 'dining table', 'fork', 'handbag', 'keyboard', 'knife', 'laptop', 'microwave', 'motorcycle', 'mouse', 'orange', 'oven', 'person', 'potted plant', 'refrigerator', 'sink', 'spoon', 'stop sign', 'toaster', 'toilet', 'train', 'tv', 'umbrella', 'vase', 'wine glass']
+
+roboflow:
+  workspace: uss-vision-rd-yw5bp
+  project: coco128-zhkcd
+  version: 1
+  license: Private
+  url: https://app.roboflow.com/uss-vision-rd-yw5bp/coco128-zhkcd/1
