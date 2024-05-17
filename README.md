@@ -31,7 +31,7 @@ https://www.ussvision.com/
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/yourusername/robolytics-labelguard.git
+    gh repo clone quagliaconsulting/Robolytics-LabelGuard-by-USS-Vision
     cd robolytics-labelguard
     ```
 
