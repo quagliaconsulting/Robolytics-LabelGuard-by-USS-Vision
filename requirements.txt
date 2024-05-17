@@ -1,0 +1,8 @@
+wheel
+streamlit
+ultralytics
+opencv-python-headless
+pillow
+streamlit-image-zoom
+numpy
+pyyaml

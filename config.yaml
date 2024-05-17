@@ -1,0 +1,11 @@
+default_model_path: "models/yolov8n.pt"
+dataset_directory: "dataset/coco128.v1i.yolov8"
+initial_iou_threshold: 0.5
+confidence_threshold: 0.2
+image_size: 1280
+percentage: 100
+use_half_precision: true
+dataset_splits:
+  - train
+  - valid
+  - test
