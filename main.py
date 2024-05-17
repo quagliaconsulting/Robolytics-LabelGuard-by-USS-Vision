@@ -8,6 +8,7 @@ import streamlit_image_zoom
 import yaml
 from pathlib import Path
 import cv2
+import torch
 
 from image_utils import load_images, draw_polygons, draw_boxes
 from model_utils import process_image, filter_mislabeled_images
