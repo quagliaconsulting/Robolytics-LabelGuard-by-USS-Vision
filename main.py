@@ -22,6 +22,9 @@ add_logos()
 st.text("")
 main_ui()
 
+# Initialize the default model loaded flag
+default_model_loaded = False
+
 # Select model
 uploaded_model = st.file_uploader("Upload your YOLOv8 model file", type=["pt"], key="model_uploader", accept_multiple_files=False)
 model_paths = []
@@ -35,6 +38,13 @@ if uploaded_model:
 else:
     for i in range(16):
         model_paths.append(default_model_path)
+    default_model_loaded = True
+
+# Display a message if the default model is loaded
+if default_model_loaded:
+    st.info(f"Default model loaded from: {default_model_path}")
+else:
+    st.success("Custom model uploaded successfully.")
 
 # Select dataset directory
 dataset_dir = Path(st.text_input("Enter the path to your dataset directory", config["dataset_directory"]))
@@ -140,7 +150,7 @@ if "mislabeled_images" in st.session_state:
         st.write(f"Found {len(filtered_mislabeled_images)} potentially mislabeled images:")
         for img_path, result, labels, label_boxes, suspect_boxes, tp, fp, fn in filtered_mislabeled_images:
             st.write(f"Image: {img_path}")
-            st.markdown(f"TP: {tp}, FP: {fp}, FN: {fn}")  # Add TP, FP, FN counts
+            st.write(f"TP: {tp}, FP: {fp}, FN: {fn}")  # Add TP, FP, FN counts
 
             if display_mode == "Polygons":
                 image_with_annotations = draw_polygons(img_path, result, labels)
@@ -157,4 +167,4 @@ if "mislabeled_images" in st.session_state:
     else:
         st.write("No potentially mislabeled images found.")
 else:
-    st.subheader("Please upload a model file and enter the dataset directory!", divider='rainbow')
+    st.write("Please upload a model file and enter the dataset directory to start processing images.")
