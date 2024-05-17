@@ -6,3 +6,6 @@ pillow
 streamlit-image-zoom
 numpy
 pyyaml
+torch
+torchvision
+torchaudio
