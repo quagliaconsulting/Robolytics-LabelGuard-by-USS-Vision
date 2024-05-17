@@ -89,20 +89,22 @@ if st.button("Process Images"):
 
         results_queue = asyncio.Queue()
 
-        async def model_worker(model, images, results_queue, iou_threshold, processed_images, conf_threshold, use_half, img_size):
+        async def model_worker(model, images, results_queue, iou_threshold, processed_images, conf_threshold, use_half, img_size, progress_bar, total_images):
             local_mislabeled_images = []
             tp, fp, fn = 0, 0, 0
 
             for image_path in images:
                 result = await process_image(model, image_path, iou_threshold, conf_threshold, use_half, img_size)
                 if result:
-                    image_path, _, _, _, _, local_tp, local_fp, local_fn = result  # Unpack all values
+                    image_path, _, _, _, _, local_tp, local_fp, local_fn = result
                     tp += local_tp
                     fp += local_fp
                     fn += local_fn
                     local_mislabeled_images.append(result)
                 await results_queue.put(1)
                 processed_images[0] += 1
+                # Update progress bar
+                progress_bar.progress(processed_images[0] / total_images)
 
             return local_mislabeled_images, tp, fp, fn
 
@@ -114,7 +116,7 @@ if st.button("Process Images"):
             for i, model in enumerate(models):
                 start_idx = i * images_per_model
                 end_idx = start_idx + images_per_model if i != len(models) - 1 else len(all_images)
-                tasks.append(model_worker(model, all_images[start_idx:end_idx], results_queue, initial_iou_threshold, processed_images, conf_threshold, use_half, img_size))
+                tasks.append(model_worker(model, all_images[start_idx:end_idx], results_queue, initial_iou_threshold, processed_images, conf_threshold, use_half, img_size, progress_bar, num_images_to_process))
 
             results = await asyncio.gather(*tasks)
             for result in results:
