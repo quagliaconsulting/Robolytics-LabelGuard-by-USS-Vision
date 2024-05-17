@@ -6,9 +6,9 @@ My name is **James Quaglia**, and I am the CTO of USS Vision, a Machine Vision a
 
 [Connect with me on LinkedIn](https://www.linkedin.com/in/james-quaglia-06143bb5/)
 
-https://roboflow.com/
-https://www.ultralytics.com/
-https://www.ussvision.com/
+https://roboflow.com/ \
+https://www.ultralytics.com/ \
+https://www.ussvision.com/ \
 
 ## Features
 
