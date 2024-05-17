@@ -8,7 +8,7 @@ My name is **James Quaglia**, and I am the CTO of USS Vision, a Machine Vision a
 
 https://roboflow.com/ \
 https://www.ultralytics.com/ \
-https://www.ussvision.com/ \
+https://www.ussvision.com/ 
 
 ## Features
 
@@ -18,6 +18,9 @@ https://www.ussvision.com/ \
 - **Customizable Thresholds**: Adjust IoU and confidence thresholds to fine-tune detection.
 
 ## Getting Started
+
+- [**Checkout the Demo Link via Streamlit Deploy!**](https://robolytics-labelguard-ussvision.streamlit.app/) 
+- **A Default TinyCOCO dataset and model have been preloaded**
 
 ### Prerequisites
 
