@@ -1,33 +1,10 @@
 import numpy as np
 import cv2
 import os
-from image_utils import get_bounding_box
-
-def calculate_iou(box1, box2):
-    x_left = max(box1[0], box2[0])
-    y_top = max(box1[1], box2[1])
-    x_right = min(box1[2], box2[2])
-    y_bottom = min(box1[3], box2[3])
-
-    if x_right < x_left or y_bottom < y_top:
-        return 0.0
-
-    intersection_area = (x_right - x_left) * (y_bottom - y_top)
-    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
-    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
-    union_area = box1_area + box2_area - intersection_area
-
-    iou = intersection_area / union_area if union_area != 0 else 0
-
-    print(f"Box1: {box1}, Box2: {box2}, IoU: {iou}")
-    
-    return iou
+from image_utils import get_bounding_box, calculate_iou
 
 def categorize_predictions(predictions, ground_truths, iou_threshold=0.5, conf_threshold=0.5, image_width=4096, image_height=3072):
-    tp = 0
-    fp = 0
-    fn = 0
-
+    tp, fp, fn = 0, 0, 0
     matched_gts = []
 
     for pred in predictions:
@@ -35,19 +12,10 @@ def categorize_predictions(predictions, ground_truths, iou_threshold=0.5, conf_t
         if pred_conf < conf_threshold:
             continue
         
-        # Normalize prediction box coordinates
-        pred_box = [
-            pred_box[0] / image_width,
-            pred_box[1] / image_height,
-            pred_box[2] / image_width,
-            pred_box[3] / image_height
-        ]
-        
         matched = False
         for gt in ground_truths:
             gt_box, gt_class = gt['box'], gt['class']
             iou = calculate_iou(pred_box, gt_box)
-            print(f"Prediction: {pred_box}, Ground Truth: {gt_box}, IoU: {iou}")
             if iou >= iou_threshold and pred_class == gt_class:
                 tp += 1
                 matched_gts.append(gt)
@@ -61,17 +29,14 @@ def categorize_predictions(predictions, ground_truths, iou_threshold=0.5, conf_t
         if gt not in matched_gts:
             fn += 1
 
-    print(f"TP: {tp}, FP: {fp}, FN: {fn}")
-    
     return tp, fp, fn
 
-async def process_image(model, image_path, iou_threshold=0.5, conf=0.2, half=True, imgsz=640):
+def process_image(model, image_path, iou_threshold=0.5, conf=0.2, half=True, imgsz=640, class_names=None):
     try:
         results = model(str(image_path), half=half, conf=conf, imgsz=imgsz)
         result = results[0]
         label_path = str(image_path).replace('images', 'labels').replace('.jpg', '.txt').replace('.jpeg', '.txt').replace('.png', '.txt')
         
-        # Handle NULL images
         if not os.path.exists(label_path):
             return (image_path, result, ['NULL'], [], [], 0, 1, 0)
 

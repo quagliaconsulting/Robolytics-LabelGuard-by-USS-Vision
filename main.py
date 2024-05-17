@@ -3,12 +3,13 @@ from ultralytics import YOLO
 import tempfile
 import numpy as np
 from PIL import Image
-import asyncio
 import streamlit_image_zoom
 import yaml
 from pathlib import Path
 import cv2
 import torch
+import multiprocessing as mp
+import time
 
 from image_utils import load_images, draw_polygons, draw_boxes
 from model_utils import process_image, filter_mislabeled_images
@@ -23,6 +24,70 @@ add_logos()
 st.text("")
 main_ui()
 
+# Load data.yaml for class names
+dataset_dir = Path(config["dataset_directory"])
+with open(dataset_dir / "data.yaml", "r") as data_file:
+    data_config = yaml.safe_load(data_file)
+class_names = data_config["names"]
+
+# Define the model_worker function
+def model_worker(model_path, images, iou_threshold, conf_threshold, use_half, img_size, total_images, device, progress_value, lock):
+    model = YOLO(model_path).to(device)
+    local_mislabeled_images = []
+    tp, fp, fn = 0, 0, 0
+
+    for image_path in images:
+        result = process_image(model, image_path, iou_threshold, conf_threshold, use_half, img_size, class_names)
+        if result:
+            image_path, _, _, _, _, local_tp, local_fp, local_fn = result
+            tp += local_tp
+            fp += local_fp
+            fn += local_fn
+            local_mislabeled_images.append(result)
+        with lock:
+            progress_value.value += 1
+
+    return local_mislabeled_images, tp, fp, fn
+
+# Define the run_processing function
+def run_processing(model_paths, all_images, initial_iou_threshold, conf_threshold, use_half, img_size, num_images_to_process, device):
+    images_per_model = len(all_images) // len(model_paths)
+    tasks = []
+    tp, fp, fn = 0, 0, 0
+
+    with mp.Manager() as manager:
+        progress_value = manager.Value('i', 0)
+        lock = manager.Lock()
+        progress_bar = st.progress(0)
+
+        with mp.Pool(processes=config["num_processes"]) as pool:
+            # Distribute images among processes
+            images_split = np.array_split(all_images, config["num_processes"])
+
+            # Create a list of arguments for each process
+            args = [(model_paths[i % len(model_paths)], images_split[i], initial_iou_threshold, conf_threshold, use_half, img_size, num_images_to_process, device, progress_value, lock) for i in range(config["num_processes"])]
+
+            # Run the model_worker function in parallel
+            results = pool.starmap_async(model_worker, args)
+
+            # Update progress bar
+            while not results.ready():
+                progress_bar.progress(progress_value.value / num_images_to_process)
+                time.sleep(0.1)
+
+            results = results.get()
+
+            # Collect results from all processes
+            for result in results:
+                local_mislabeled_images, local_tp, local_fp, local_fn = result
+                mislabeled_images.extend(local_mislabeled_images)
+                tp += local_tp
+                fp += local_fp
+                fn += local_fn
+
+            print(f"Total TP: {tp}, FP: {fp}, FN: {fn}")
+
+        progress_bar.empty()
 
 # Initialize the default model loaded flag
 default_model_loaded = False
@@ -33,12 +98,12 @@ model_paths = []
 default_model_path = Path(config["default_model_path"])
 if uploaded_model:
     uploaded_model_content = uploaded_model.read()
-    for i in range(16):
+    for i in range(config["num_processes"]):
         with tempfile.NamedTemporaryFile(delete=False, suffix='.pt') as tmp_model_file:
             tmp_model_file.write(uploaded_model_content)
             model_paths.append(tmp_model_file.name)
 else:
-    for i in range(16):
+    for i in range(config["num_processes"]):
         model_paths.append(default_model_path)
     default_model_loaded = True
 
@@ -82,10 +147,6 @@ if st.button("Process Images"):
 
         num_images_to_process = int(total_images * (percentage / 100))
 
-        progress_bar = st.progress(0)
-
-        models = [YOLO(model_path).to(device) for model_path in model_paths]
-
         all_images = []
         for split in dataset_splits:
             all_images.extend(load_images(dataset_dir / split / 'images'))
@@ -93,55 +154,7 @@ if st.button("Process Images"):
         if num_images_to_process < total_images:
             all_images = np.random.choice(all_images, num_images_to_process, replace=False).tolist()
 
-        results_queue = asyncio.Queue()
-
-        async def model_worker(model, images, results_queue, iou_threshold, processed_images, conf_threshold, use_half, img_size, progress_bar, total_images):
-            local_mislabeled_images = []
-            tp, fp, fn = 0, 0, 0
-
-            for image_path in images:
-                result = await process_image(model, image_path, iou_threshold, conf_threshold, use_half, img_size)
-                if result:
-                    image_path, _, _, _, _, local_tp, local_fp, local_fn = result
-                    tp += local_tp
-                    fp += local_fp
-                    fn += local_fn
-                    local_mislabeled_images.append(result)
-                await results_queue.put(1)
-                processed_images[0] += 1
-                # Update progress bar
-                progress_bar.progress(processed_images[0] / total_images)
-
-            return local_mislabeled_images, tp, fp, fn
-
-        async def run_processing():
-            images_per_model = len(all_images) // len(models)
-            tasks = []
-            tp, fp, fn = 0, 0, 0
-
-            for i, model in enumerate(models):
-                start_idx = i * images_per_model
-                end_idx = start_idx + images_per_model if i != len(models) - 1 else len(all_images)
-                tasks.append(model_worker(model, all_images[start_idx:end_idx], results_queue, initial_iou_threshold, processed_images, conf_threshold, use_half, img_size, progress_bar, num_images_to_process))
-
-            results = await asyncio.gather(*tasks)
-            for result in results:
-                local_mislabeled_images, local_tp, local_fp, local_fn = result
-                mislabeled_images.extend(local_mislabeled_images)
-                tp += local_tp
-                fp += local_fp
-                fn += local_fn
-
-            while processed_images[0] < num_images_to_process:
-                await results_queue.get()
-                progress_bar.progress(processed_images[0] / num_images_to_process)
-
-            print(f"Total TP: {tp}, FP: {fp}, FN: {fn}")
-
-        processed_images = [0]
-        asyncio.run(run_processing())
-
-        progress_bar.empty()
+        run_processing(model_paths, all_images, initial_iou_threshold, conf_threshold, use_half, img_size, num_images_to_process, device)
 
         st.session_state["mislabeled_images"] = mislabeled_images
 
@@ -161,9 +174,9 @@ if "mislabeled_images" in st.session_state:
             st.write(f"TP: {tp}, FP: {fp}, FN: {fn}")  # Add TP, FP, FN counts
 
             if display_mode == "Polygons":
-                image_with_annotations = draw_polygons(img_path, result, labels)
+                image_with_annotations = draw_polygons(img_path, result, labels, suspect_boxes, class_names)
             else:
-                image_with_annotations = draw_boxes(img_path, result, label_boxes, suspect_boxes)
+                image_with_annotations = draw_boxes(img_path, result, label_boxes, suspect_boxes, class_names)
 
             if image_with_annotations is not None:
                 image_with_annotations_rgb = cv2.cvtColor(image_with_annotations, cv2.COLOR_BGR2RGB)

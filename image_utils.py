@@ -1,14 +1,13 @@
-from pathlib import Path
 import cv2
 import numpy as np
+from pathlib import Path
 
-def load_images(directory, extensions=['*.jpg', '*.jpeg', '*.png']):
-    images = []
-    for ext in extensions:
-        images.extend(Path(directory).rglob(ext))
+def load_images(directory: Path):
+    image_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.tiff')
+    images = [str(path) for path in directory.rglob('*') if path.suffix.lower() in image_extensions]
     return images
 
-def draw_polygons(image_path, result, labels):
+def draw_polygons(image_path, result, labels, suspect_boxes, class_names):
     image = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
     if image is None:
         return None
@@ -17,20 +16,29 @@ def draw_polygons(image_path, result, labels):
 
     for label in labels:
         try:
-            points = list(map(float, label.strip().split()[1:]))
+            parts = label.strip().split()
+            class_id = int(parts[0])
+            points = list(map(float, parts[1:]))
             polygon = np.array(points).reshape((-1, 2)) * [width, height]
             polygon = polygon.astype(int)
             cv2.polylines(image, [polygon], isClosed=True, color=(0, 255, 0), thickness=2)
+            cv2.putText(image, class_names[class_id], (polygon[0][0], polygon[0][1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
         except ValueError:
             continue
 
-    for box in result.boxes:
-        x1, y1, x2, y2 = map(int, box.xyxy[0])
-        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 2)
+    # Draw suspect boxes with class names
+    for box in suspect_boxes:
+        try:
+            x1, y1, x2, y2 = box['box']
+            class_id = box['class']
+            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 2)
+            cv2.putText(image, class_names[class_id], (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+        except ValueError:
+            continue
 
     return image
 
-def draw_boxes(image_path, result, label_boxes, suspect_boxes):
+def draw_boxes(image_path, result, label_boxes, suspect_boxes, class_names):
     image = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
     if image is None:
         return None
@@ -47,7 +55,7 @@ def draw_boxes(image_path, result, label_boxes, suspect_boxes):
             y2 = int(y2 * height)
             class_id = label_box['class']
             cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.putText(image, str(class_id), (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+            cv2.putText(image, class_names[class_id], (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
         except ValueError:
             continue
 
@@ -57,7 +65,7 @@ def draw_boxes(image_path, result, label_boxes, suspect_boxes):
             x1, y1, x2, y2 = box['box']
             class_id = box['class']
             cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 2)
-            cv2.putText(image, str(class_id), (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+            cv2.putText(image, class_names[class_id], (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
         except ValueError:
             continue
 

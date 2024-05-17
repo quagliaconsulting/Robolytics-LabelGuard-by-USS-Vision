@@ -5,6 +5,7 @@
 # image_size: 1280
 # percentage: 100
 # use_half_precision: true
+# num_processes: 8
 # dataset_splits:
 #   - train
 #   - valid
@@ -16,8 +17,9 @@ dataset_directory: "C:/Users/James/Downloads/MasterSplitv2.v5i.yolov8"
 initial_iou_threshold: 0.5
 confidence_threshold: 0.2
 image_size: 4096
-percentage: 100
+percentage: 5
 use_half_precision: true
+num_processes: 8
 dataset_splits:
   - train
   - valid
