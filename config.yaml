@@ -5,7 +5,7 @@ confidence_threshold: 0.2
 image_size: 224
 percentage: 100
 use_half_precision: true
-num_processes: 8
+num_processes: 1
 dataset_splits:
   - train
   - valid
