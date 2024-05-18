@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import os
 from image_utils import get_bounding_box, calculate_iou
+import gc
 
 def categorize_predictions(predictions, ground_truths, iou_threshold=0.5, conf_threshold=0.5, image_width=4096, image_height=3072):
     tp, fp, fn = 0, 0, 0
@@ -61,6 +62,11 @@ def process_image(model, image_path, iou_threshold=0.5, conf=0.2, half=True, img
         prediction_bounding_boxes = [{'box': [x1, y1, x2, y2], 'confidence': box.conf[0], 'class': int(box.cls[0])} for box in result.boxes for x1, y1, x2, y2 in [map(int, box.xyxy[0])]]
 
         tp, fp, fn = categorize_predictions(prediction_bounding_boxes, label_bounding_boxes, iou_threshold, conf, width, height)
+
+        # Release memory
+        del image
+        gc.collect()
+
         return (image_path, result, labels, label_bounding_boxes, prediction_bounding_boxes, tp, fp, fn)
     except Exception as e:
         print(f"Error processing image {image_path}: {e}")

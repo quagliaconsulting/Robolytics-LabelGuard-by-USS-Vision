@@ -1,4 +1,3 @@
-
-*.yaml
-/env
-*.pyc
+config.yaml
+__pycache__
+env
