@@ -26,10 +26,10 @@ def draw_polygons(image_path, result, labels, suspect_boxes, class_names):
         except ValueError:
             continue
 
-    # Draw suspect boxes with class names
     for box in suspect_boxes:
         try:
             x1, y1, x2, y2 = box['box']
+            x1, y1, x2, y2 = int(x1 * width), int(y1 * height), int(x2 * width), int(y2 * height)
             class_id = box['class']
             class_name = class_names[class_id] if class_id < len(class_names) else f"Class {class_id}"
             cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 2)
@@ -46,14 +46,10 @@ def draw_boxes(image_path, result, label_boxes, suspect_boxes, class_names):
 
     height, width, _ = image.shape
 
-    # Draw label boxes with class names
     for label_box in label_boxes:
         try:
             x1, y1, x2, y2 = label_box['box']
-            x1 = int(x1 * width)
-            y1 = int(y1 * height)
-            x2 = int(x2 * width)
-            y2 = int(y2 * height)
+            x1, y1, x2, y2 = int(x1 * width), int(y1 * height), int(x2 * width), int(y2 * height)
             class_id = label_box['class']
             class_name = class_names[class_id] if class_id < len(class_names) else f"Class {class_id}"
             cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -61,10 +57,10 @@ def draw_boxes(image_path, result, label_boxes, suspect_boxes, class_names):
         except ValueError:
             continue
 
-    # Draw suspect boxes with class names
     for box in suspect_boxes:
         try:
             x1, y1, x2, y2 = box['box']
+            x1, y1, x2, y2 = int(x1 * width), int(y1 * height), int(x2 * width), int(y2 * height)
             class_id = box['class']
             class_name = class_names[class_id] if class_id < len(class_names) else f"Class {class_id}"
             cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 2)

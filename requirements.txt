@@ -1,11 +1,11 @@
-wheel
 streamlit
 ultralytics
-opencv-python-headless
-pillow
-streamlit-image-zoom
+PyYAML
 numpy
-pyyaml
+opencv-python
+Pillow
 torch
-torchvision
-torchaudio
+streamlit_image_zoom
+# torch ***BE CAREFUL, >2.2 CUDA SUPPORT BROKEN ON WINDOWS, PYTHON 3.12, CUDA 12.4***USE DOWNLOAD FOR 11.8 FROM PYTORCH START LOCALLY WEBSITE***
+# torchvision
+# torchaudio

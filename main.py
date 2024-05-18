@@ -8,15 +8,24 @@ from PIL import Image
 import cv2
 import streamlit_image_zoom
 from image_utils import draw_polygons, draw_boxes, load_images
-from model_utils import filter_mislabeled_images
+from model_utils import process_image, filter_mislabeled_images
 from ui_components import add_logos, main_ui
 import torch
+import sys
+import os
+import logging
+from multiprocessing import Pool
+from ultralytics import YOLO
+from processing import model_worker
+
+# Configure logging
+logging.basicConfig(filename='processing.log', level=logging.DEBUG, format='%(asctime)s - %(message)s')
 
 # Load configuration
 with open("config.yaml", "r") as config_file:
     config = yaml.safe_load(config_file)
 
-# Add logos and main UI
+# Initialize Streamlit UI and load configuration
 add_logos()
 st.text("")
 main_ui()
@@ -91,54 +100,42 @@ if st.button("Process Images"):
         if num_images_to_process < total_images:
             all_images = np.random.choice(all_images, num_images_to_process, replace=False).tolist()
 
-        # Write arguments to a temporary file
-        args = {
-            "model_paths": model_paths,
-            "all_images": all_images,
-            "initial_iou_threshold": initial_iou_threshold,
-            "conf_threshold": conf_threshold,
-            "use_half": int(use_half),
-            "img_size": img_size,
-            "num_images_to_process": num_images_to_process,
-            "device": device,
-            "class_names": class_names
-        }
+        tasks = []
+        images_per_model = len(all_images) // len(model_paths)
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.yaml', mode='w') as tmp_args_file:
-            yaml.dump(args, tmp_args_file)
-            tmp_args_file_path = tmp_args_file.name
+        for i, model_path in enumerate(model_paths):
+            images = all_images[i * images_per_model: (i + 1) * images_per_model]
+            tasks.append((model_path, images, initial_iou_threshold, conf_threshold, use_half, img_size, device, class_names))
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.yaml') as tmp_results_file:
-            tmp_results_file_path = tmp_results_file.name
+        # Use multiprocessing to process images in parallel
+        with Pool(processes=len(model_paths)) as pool:
+            results = pool.map(model_worker, tasks)
 
-        # Run the processing script as a subprocess
-        cmd = ['python', 'processing.py', tmp_args_file_path, tmp_results_file_path]
+        # Aggregate results
+        mislabeled_images = []
+        tp, fp, fn = 0, 0, 0
 
-        # Start the subprocess and track progress
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        for result in results:
+            local_mislabeled_images, local_tp, local_fp, local_fn = result
+            mislabeled_images.extend(local_mislabeled_images)
+            tp += local_tp
+            fp += local_fp
+            fn += local_fn
 
+        # Save results in session state
+        st.session_state["mislabeled_images"] = mislabeled_images
+        st.session_state["tp"] = tp
+        st.session_state["fp"] = fp
+        st.session_state["fn"] = fn
+
+        # Display the progress bar
         progress_bar = st.progress(0)
         progress_value = 0
 
-        while True:
-            line = process.stdout.readline()
-            if not line:
-                break
-            line = line.decode('utf-8').strip()
-            if line == 'done':
-                break
+        # Update progress bar based on completed images
+        for image in all_images:
             progress_value += 1
-            progress_bar.progress(progress_value / num_images_to_process)
-
-        process.wait()
-
-        # Load results from the temporary results file
-        with open(tmp_results_file_path, 'r') as file:
-            results = yaml.safe_load(file)
-            st.session_state["mislabeled_images"] = results['mislabeled_images']
-            st.session_state["tp"] = results['tp']
-            st.session_state["fp"] = results['fp']
-            st.session_state["fn"] = results['fn']
+            progress_bar.progress(min(progress_value / num_images_to_process, 1.0))
 
 if "mislabeled_images" in st.session_state:
     display_mode = st.radio("Display Mode", ["Polygons", "Bounding Boxes"])

@@ -42,7 +42,6 @@ def add_logos():
         unsafe_allow_html=True
     )
 
-
 def main_ui():
     st.subheader("Robolytics LabelGuard by USS Vision", divider='rainbow')
     st.write("Identify likely mislabeled objects in your object detection dataset.")
