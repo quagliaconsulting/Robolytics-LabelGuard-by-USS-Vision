@@ -22,7 +22,7 @@ def draw_polygons(image_path, result, labels, suspect_boxes, class_names):
             polygon = np.array(points).reshape((-1, 2)) * [width, height]
             polygon = polygon.astype(int)
             cv2.polylines(image, [polygon], isClosed=True, color=(0, 255, 0), thickness=2)
-            cv2.putText(image, class_names[class_id], (polygon[0][0], polygon[0][1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+            cv2.putText(image, class_names[class_id] if class_id < len(class_names) else f"Class {class_id}", (polygon[0][0], polygon[0][1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
         except ValueError:
             continue
 
@@ -31,8 +31,9 @@ def draw_polygons(image_path, result, labels, suspect_boxes, class_names):
         try:
             x1, y1, x2, y2 = box['box']
             class_id = box['class']
+            class_name = class_names[class_id] if class_id < len(class_names) else f"Class {class_id}"
             cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 2)
-            cv2.putText(image, class_names[class_id], (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+            cv2.putText(image, class_name, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
         except ValueError:
             continue
 
@@ -54,8 +55,9 @@ def draw_boxes(image_path, result, label_boxes, suspect_boxes, class_names):
             x2 = int(x2 * width)
             y2 = int(y2 * height)
             class_id = label_box['class']
+            class_name = class_names[class_id] if class_id < len(class_names) else f"Class {class_id}"
             cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.putText(image, class_names[class_id], (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+            cv2.putText(image, class_name, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
         except ValueError:
             continue
 
@@ -64,8 +66,9 @@ def draw_boxes(image_path, result, label_boxes, suspect_boxes, class_names):
         try:
             x1, y1, x2, y2 = box['box']
             class_id = box['class']
+            class_name = class_names[class_id] if class_id < len(class_names) else f"Class {class_id}"
             cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 2)
-            cv2.putText(image, class_names[class_id], (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+            cv2.putText(image, class_name, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
         except ValueError:
             continue
 
