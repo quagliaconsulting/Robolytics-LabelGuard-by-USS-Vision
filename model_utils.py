@@ -1,10 +1,10 @@
 # model_utils.py
-
 import numpy as np
 import cv2
 import os
 from image_utils import get_bounding_box, calculate_iou
 import logging
+import gc
 
 def categorize_predictions(predictions, ground_truths, iou_threshold=0.5, conf_threshold=0.5, image_width=4096, image_height=3072):
     tp, fp, fn = 0, 0, 0
@@ -41,10 +41,18 @@ def categorize_predictions(predictions, ground_truths, iou_threshold=0.5, conf_t
     logging.info(f"Categorized predictions. TP: {tp}, FP: {fp}, FN: {fn}")
     return tp, fp, fn
 
+
 def process_image(model, image_path, iou_threshold=0.5, conf=0.2, half=True, imgsz=None, class_names=None):
+    result = None  # Initialize result to ensure it's always defined
     try:
         logging.info(f"Processing image: {image_path}")
         results = model(str(image_path), half=half, conf=conf, imgsz=imgsz)
+
+        # Check if results are empty
+        if not results or not results[0]:
+            logging.warning(f"No results for image: {image_path}")
+            return (image_path, None, [], [], [], 0, 0, 0)
+
         result = results[0]
         label_path = str(image_path).replace('images', 'labels').replace('.jpg', '.txt').replace('.jpeg', '.txt').replace('.png', '.txt')
         
@@ -59,7 +67,7 @@ def process_image(model, image_path, iou_threshold=0.5, conf=0.2, half=True, img
         image = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
         if image is None:
             logging.error(f"Failed to read image {image_path}")
-            return None
+            return (image_path, None, [], [], [], 0, 0, 0)
         height, width, _ = image.shape
 
         label_bounding_boxes = []
@@ -78,10 +86,16 @@ def process_image(model, image_path, iou_threshold=0.5, conf=0.2, half=True, img
 
         tp, fp, fn = categorize_predictions(prediction_bounding_boxes, label_bounding_boxes, iou_threshold, conf, width, height)
         logging.info(f"Processed image: {image_path}, TP: {tp}, FP: {fp}, FN: {fn}")
+
+        # Free up memory
+        del image
+        gc.collect()
+
         return (image_path, result, labels, label_bounding_boxes, prediction_bounding_boxes, tp, fp, fn)
     except Exception as e:
         logging.error(f"Error processing image {image_path}: {e}")
-    return None
+        return (image_path, result, [], [], [], 0, 0, 0)  # Return a tuple with a default result
+    
 
 def filter_mislabeled_images(mislabeled_images, threshold):
     filtered_images = []

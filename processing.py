@@ -1,5 +1,4 @@
 # processing.py
-
 import sys
 import yaml
 from ultralytics import YOLO
@@ -9,13 +8,12 @@ import torch
 import logging
 from multiprocessing import Pool
 import gc
-import os
 
 # Configure logging
 logging.basicConfig(filename='processing.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(message)s')
 
 def model_worker(args):
-    model_path, images, iou_threshold, conf_threshold, use_half, img_size, device, class_names = args
+    model_path, images, iou_threshold, conf_threshold, use_half, img_size, device, class_names, progress_counters, index = args
     model = YOLO(model_path).to(device)
     local_mislabeled_images = []
     tp, fp, fn = 0, 0, 0
@@ -28,11 +26,14 @@ def model_worker(args):
             fp += local_fp
             fn += local_fn
             local_mislabeled_images.append(result)
+        
+        # Update the progress counter
+        progress_counters[index] += 1
 
     # Free up memory
-    del model
-    gc.collect()
-    torch.cuda.empty_cache()
+    # #del model
+    # #torch.cuda.empty_cache()
+    # gc.collect()
 
     return local_mislabeled_images, tp, fp, fn
 
