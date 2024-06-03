@@ -14,7 +14,7 @@
 #   - test
 
 default_model_path: "C:/Users/James/Downloads/MS-v8n-4096-0517.pt"
-dataset_directory: "C:/Users/James/Downloads/MasterSplitv2.v5i.yolov8"
+dataset_directory: "C:/Users/James/Downloads/MasterSplitv2.v12i.yolov8"
 initial_iou_threshold: 0.5
 confidence_threshold: 0.2
 image_size: 4096

@@ -1,13 +1,11 @@
-# processing.py
 import sys
-import yaml
 from ultralytics import YOLO
-from image_utils import load_images, draw_boxes
-from model_utils import process_image, filter_mislabeled_images
-import torch
+from image_utils import load_images
+from model_utils import process_image
 import logging
 from multiprocessing import Pool
 import gc
+import yaml
 
 # Configure logging
 logging.basicConfig(filename='processing.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(message)s')
@@ -31,16 +29,17 @@ def model_worker(args):
         progress_counters[index] += 1
 
     # Free up memory
-    # #del model
-    # #torch.cuda.empty_cache()
-    # gc.collect()
+    #del model
+    #torch.cuda.empty_cache()
+    gc.collect()
 
     return local_mislabeled_images, tp, fp, fn
+
+
 
 if __name__ == "__main__":
     try:
         args_file = sys.argv[1]
-        results_file = sys.argv[2]
 
         with open(args_file, 'r') as file:
             args = yaml.safe_load(file)
@@ -87,11 +86,6 @@ if __name__ == "__main__":
             "fp": fp,
             "fn": fn
         }
-
-        logging.info("Writing results to file")
-        with open(results_file, 'w') as file:
-            yaml.dump(output, file)
-        logging.info("Finished writing results to file")
 
         logging.info("Processing completed successfully.")
         print("done")

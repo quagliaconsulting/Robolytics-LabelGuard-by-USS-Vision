@@ -1,4 +1,3 @@
-# main.py
 import streamlit as st
 import yaml
 import numpy as np
@@ -105,13 +104,14 @@ def main():
 
             if num_images_to_process < total_images:
                 all_images = np.random.choice(all_images, num_images_to_process, replace=False).tolist()
-
+                
             tasks = []
             images_per_model = len(all_images) // len(model_paths)
 
             for i, model_path in enumerate(model_paths):
                 images = all_images[i * images_per_model: (i + 1) * images_per_model]
                 tasks.append((model_path, images, initial_iou_threshold, conf_threshold, use_half, img_size, device, class_names, progress_counters, i))
+
 
             # Display the progress bar
             progress_bar = st.progress(0)
@@ -148,6 +148,7 @@ def main():
             st.session_state["fp"] = fp
             st.session_state["fn"] = fn
 
+    # Add debug statements to the end of the image processing section
     if "mislabeled_images" in st.session_state:
         display_mode = st.radio("Display Mode", ["Polygons", "Bounding Boxes"])
 
@@ -161,6 +162,8 @@ def main():
         st.write(f"Total TP: {tp}, FP: {fp}, FN: {fn}")
 
         filtered_mislabeled_images = filter_mislabeled_images(mislabeled_images, iou_threshold)
+
+        logging.debug(f"Filtered Mislabeled Images: {filtered_mislabeled_images}")
 
         if filtered_mislabeled_images:
             st.write(f"Found {len(filtered_mislabeled_images)} potentially mislabeled images:")
@@ -188,6 +191,8 @@ def main():
             st.write("No potentially mislabeled images found.")
     else:
         st.write("Please upload a model file and enter the dataset directory to start processing images.")
+
+
 
 if __name__ == '__main__':
     main()
